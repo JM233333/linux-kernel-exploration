@@ -1,0 +1,10 @@
+*
+!*/
+!*.c
+!*.sh
+!.gitignore
+!Makefile
+!cpio_list
+
+gen_initramfs.sh
+gen_init_cpio

@@ -43,6 +43,7 @@ scripts/basic/docproc
 scripts/basic/fixdep
 scripts/basic/split-include
 
+scripts/kconfig/conf
 scripts/kconfig/lex.zconf.c
 scripts/kconfig/lxdialog/lxdialog
 scripts/kconfig/mconf
