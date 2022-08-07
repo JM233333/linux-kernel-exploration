@@ -1,0 +1,5 @@
+packages/
+bzImage
+*.img
+*.image
+*.log
