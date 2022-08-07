@@ -7,27 +7,31 @@
 include ./scripts/build/archives.mk
 
 DIR_SCRIPTS := $(realpath ./scripts)
-DIR_SCRIPTS_DEFAULTCONFIG := $(realpath $(DIR_SCRIPTS)/defaultconfig)
+
+DIR_SCRIPTS_BUILD        := $(realpath $(DIR_SCRIPTS)/build)
+DIR_SCRIPTS_BUILD_CONFIG := $(realpath $(DIR_SCRIPTS_BUILD)/config)
 
 ## Rules
 
 
 
-## Rules : Config & Build
+## Rules : Config
 
-defaultconfig:
+defaultconfig: tinyconfig
+
+tinyconfig:
 ifeq ($(wildcard $(DIR_KERNEL)/.config),)
-	cp $(DIR_SCRIPTS_DEFAULTCONFIG)/kernel.config $(DIR_KERNEL)/.config
+	cp $(DIR_SCRIPTS_BUILD_CONFIG)/tiny/kernel.config $(DIR_KERNEL)/.config
 else
-	echo defaultconfig failed : .config file already exists in kernel archive.
+	@echo tinyconfig failed : .config file already exists in kernel archive.
 endif
 ifeq ($(wildcard $(DIR_BUSYBOX)/.config),)
-	cp $(DIR_SCRIPTS_DEFAULTCONFIG)/busybox.config $(DIR_BUSYBOX)/.config
+	cp $(DIR_SCRIPTS_BUILD_CONFIG)/tiny/busybox.config $(DIR_BUSYBOX)/.config
 else
-	echo defaultconfig failed : .config file already exists in busybox archive.
+	@echo tinyconfig failed : .config file already exists in busybox archive.
 endif
 
-.PHONY: defaultconfig
+.PHONY: defaultconfig tinyconfig
 
 ## Rules : Build
 
