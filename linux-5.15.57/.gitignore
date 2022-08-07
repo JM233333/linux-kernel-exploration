@@ -97,6 +97,9 @@ modules.order
 !.gitignore
 !.mailmap
 
+# Added by JM233333 : presists .config for convenience in several cases
+!.config
+
 #
 # Generated include files
 #

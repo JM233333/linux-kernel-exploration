@@ -64,11 +64,11 @@ make menuconfig
 
 For below-mentioned configurations, there positions in `menuconfig` GUI (5.15.57) is given, which might be different in other versions of kernel.
 
-Required extra configurations are listed below :
+Required additional configurations are listed below :
 
 - ;
 
-Recommended extra configurations are listed below :
+Recommended additional configurations are listed below :
 
 - ;
 
