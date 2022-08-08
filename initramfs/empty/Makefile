@@ -14,7 +14,7 @@ CFLAGS := -O0 -g -ggdb -static
 ## Rules
 
 gen: compile
-	echo init | cpio -ov --format=newc | gzip > $(IMAGE)
+	echo init | cpio -ov --format=newc > $(IMAGE)
 
 compile: init
 

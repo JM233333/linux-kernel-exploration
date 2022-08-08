@@ -48,6 +48,12 @@ ifeq ($(INITRAMFS),)
     INITRAMFS := busybox
 endif
 
+### gdb
+
+GDB_PORT := 1234
+
+GDB_SCRIPT := $(DIR_SCRIPTS_GDB)
+
 ## Rules : Config
 
 defaultconfig: tinyconfig
@@ -68,9 +74,20 @@ endif
 
 ## Rules : Run
 
-run: build gen-initramfs
+run: build-kernel gen-initramfs
 	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) \
         --append "root=/dev/ram init=/init"
+
+## Rules : Debug
+
+gdb: build-kernel gen-initramfs
+	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) \
+        --append "root=/dev/ram init=/init" \
+        -S -gdb tcp::$(GDB_PORT)
+
+gdb-attach:
+	gdb $(DIR_KERNEL)/vmlinux -ex "target remote localhost:$(GDB_PORT)"
+#	cd $(DIR_KERNEL); gdb ./vmlinux -ex "target remote localhost:$(GDB_PORT)"
 
 ## Rules : Build
 
