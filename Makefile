@@ -29,6 +29,8 @@ DIR_SCRIPTS              := $(realpath ./scripts)
 DIR_SCRIPTS_BUILD        := $(DIR_SCRIPTS)/build
 DIR_SCRIPTS_BUILD_CONFIG := $(DIR_SCRIPTS_BUILD)/config
 
+DIR_SCRIPTS_GDB          := $(DIR_SCRIPTS)/gdb
+
 # DIR_SCRIPTS_INITRAMFS    := $(DIR_SCRIPTS)/initramfs
 
 DIR_INITRAMFS         := $(realpath ./initramfs)
@@ -48,12 +50,6 @@ ifeq ($(INITRAMFS),)
     INITRAMFS := busybox
 endif
 
-### gdb
-
-GDB_PORT := 1234
-
-GDB_SCRIPT := $(DIR_SCRIPTS_GDB)
-
 ## Rules : Config
 
 defaultconfig: tinyconfig
@@ -72,21 +68,36 @@ endif
 
 .PHONY: defaultconfig tinyconfig
 
+## Configurations of Run
+
+### gdb
+
+GDB_PORT := 1234
+
+GDB_SCRIPT := $(DIR_SCRIPTS_GDB)/test.gdb
+
+### qemu
+
+QEMUFLAGS      := -serial mon:stdio -nographic
+QEMUAPPENDARGS := console=ttyS0
+
+QEMUFLAGS_GDB  := -S -gdb tcp::$(GDB_PORT)
+
 ## Rules : Run
 
 run: build-kernel gen-initramfs
-	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) \
-        --append "root=/dev/ram init=/init"
+	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) $(QEMUFLAGS) \
+        -append "$(QEMUAPPENDARGS) root=/dev/ram init=/init"
 
 ## Rules : Debug
 
 gdb: build-kernel gen-initramfs
-	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) \
-        --append "root=/dev/ram init=/init" \
-        -S -gdb tcp::$(GDB_PORT)
+	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) $(QEMUFLAGS) \
+        -append "$(QEMUAPPENDARGS) root=/dev/ram init=/init" \
+        $(QEMUFLAGS_GDB)
 
 gdb-attach:
-	gdb $(DIR_KERNEL)/vmlinux -ex "target remote localhost:$(GDB_PORT)"
+	gdb $(DIR_KERNEL)/vmlinux -x $(GDB_SCRIPT) -ex "target remote localhost:$(GDB_PORT)"
 #	cd $(DIR_KERNEL); gdb ./vmlinux -ex "target remote localhost:$(GDB_PORT)"
 
 ## Rules : Build
