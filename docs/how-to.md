@@ -1,4 +1,4 @@
-# Build and Run a Tiny Linux Kernel on QEMU
+Build, Run and Debug a Tiny Linux Kernel on QEMU
 
 *Authored by JM233333 (not finished)*
 
@@ -74,11 +74,25 @@ Required and highly-recommanded additional options are listed below :
 
 - General setup --->
 
+    - [?] System V IPC
+
     - [*] Initial RAM filesystem and RAM disk (initramfs/initrd) support
 
     - Configure standard kernel features (expert users) --->
 
+        - [?] Sysfs syscall support
+
         - [*] Enable support for printk
+
+        - [?] BUG() support
+
+        - [?] Enable ELF core dumps
+    
+    - [?] Load all symbols for debugging/ksymoops
+
+    - [?] Disable heap randomization
+
+    - [?] Profiling support
 
 - Executable file formats --->
 
@@ -132,7 +146,7 @@ After `make` , a series of images will be generated, and we are concerned about 
 
 - `bzImage` : The generic linux kernel binary image file, which is used to boot the kernel on qemu. It is located at `linux-5.15.57/arch/x86/boot/bzImage` by default.
 
-- `vmlinux` : This is the linux kernel in a statically linked executable file format, which contains useful information for debugging purposes, and is used to debug the kernel through gdb or other debug engines. It is located at `linux-5.15.57/vmlinux` by default, generated together with `vmlinux-gdb.py` in modern-version linux kernel.
+- `vmlinux` : This is the linux kernel in a statically linked executable file format, which contains useful information for debugging purposes, and is used to debug the kernel through gdb or other debug engines. It is located at `linux-5.15.57/vmlinux` by default, and `vmlinux-gdb.py` is generated together in modern-version linux kernel.
 
 ---
 
@@ -140,11 +154,11 @@ After `make` , a series of images will be generated, and we are concerned about 
 
 #### Generate a Minimal initramfs
 
-TBD
+This section will tell you how to generate a minimal initramfs, which is almost empty, only containing a hello-world executable file.
 
 #### Generate a initramfs with BusyBox
 
-TBD
+This section will tell you how to generate a BusyBox-based initramfs, which contains an interactive terminal and BusyBox-based command line tools.
 
 ---
 
@@ -205,6 +219,8 @@ make -J4
 
 #### List of Error-and-Solution Pairs
 
+**EaSP #1**
+
 ```
 make[1]: *** No rule to make target 'debian/canonical-certs.pem', needed by 'certs/x509_certificate_list'.  Stop.
 ```
@@ -215,12 +231,18 @@ https://askubuntu.com/questions/1329538/compiling-the-kernel-5-11-11
 
 ### References
 
+#### About Building
+
 - [Building a tiny Linux kernel - by Anuradha Weeraman](https://weeraman.com/building-a-tiny-linux-kernel-8c07579ae79d)
 
 - [Build the Linux Kernel and Busybox and run them on QEMU](https://www.centennialsoftwaresolutions.com/post/build-the-linux-kernel-and-busybox-and-run-them-on-qemu)
 
 - [Linux Kernel Tinification](https://tiny.wiki.kernel.org/)
 
+#### About Debugging
+
 - [Linux Kernel Documentation - Debugging kernel and modules via gdb](https://docs.kernel.org/dev-tools/gdb-kernel-debugging.html)
+
+- [Debugging Linux kernels with Qemu and GDB](https://www.sobyte.net/post/2022-02/debug-linux-kernel-with-qemu-and-gdb)
 
 - [Teach you how to debug Linux kernel with VSCode + Qemu + GDB](https://programming.vip/docs/teach-you-how-to-debug-linux-kernel-with-vs-code-qemu-gdb.html)
