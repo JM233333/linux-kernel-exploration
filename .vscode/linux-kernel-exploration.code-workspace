@@ -7,5 +7,12 @@
 			"path": "../linux-5.15.57"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.associations": {
+			"syscalls_64.h": "c",
+			"syscall_wrapper.h": "c",
+			"unistd.h": "c",
+			"unistd_64.h": "c"
+		}
+	}
 }

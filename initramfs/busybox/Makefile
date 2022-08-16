@@ -14,13 +14,23 @@ endif
 
 CPIO_LIST = $(realpath ./cpio_list)
 
+## Compilers and Compile Flags
+
+CC := gcc
+
+CFLAGS := -O0 -g -ggdb -static
+
 ## Rules
 
-gen:
+gen: test
 	@echo $(notdir $(SCRIPT)) -o $(notdir $(IMAGE)) $(notdir $(BUSYBOX)) $(notdir $(CPIO_LIST))
 	@$(SCRIPT) -o $(IMAGE) $(BUSYBOX) $(CPIO_LIST)
 
+test: test.c
+	$(CC) $(CFLAGS) -o test test.c
+
 clean:
-	rm -r usr
+	rm -rf usr
+	rm -f test
 
 .PHONY: gen clean

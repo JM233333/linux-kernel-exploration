@@ -85,13 +85,13 @@ QEMUFLAGS_GDB  := -S -gdb tcp::$(GDB_PORT)
 
 ## Rules : Run
 
-run: build-kernel gen-initramfs
+run: $(KERNEL_IMAGE) gen-initramfs
 	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) $(QEMUFLAGS) \
         -append "$(QEMUAPPENDARGS) root=/dev/ram init=/init"
 
 ## Rules : Debug
 
-gdb: build-kernel gen-initramfs
+gdb: $(KERNEL_IMAGE) gen-initramfs
 	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) $(QEMUFLAGS) \
         -append "$(QEMUAPPENDARGS) root=/dev/ram init=/init" \
         $(QEMUFLAGS_GDB)
@@ -104,21 +104,19 @@ gdb-attach:
 
 build: build-kernel build-busybox
 
-build-kernel: $(KERNEL_IMAGE)
+build-kernel:
+	@echo + Building Linux Kernel
+	@make -C $(DIR_KERNEL) -j4
 	@mkdir -p $(dir $(SCRIPT_GEN_INITRAMFS))
 	@cp $(DIR_KERNEL)/usr/$(notdir $(SCRIPT_GEN_INITRAMFS)) $(SCRIPT_GEN_INITRAMFS)
 	@cp $(DIR_KERNEL)/usr/$(notdir $(BIN_GEN_INIT_CPIO))    $(BIN_GEN_INIT_CPIO)
 
-build-busybox: $(BUSYBOX_IMAGE)
-
-$(KERNEL_IMAGE):
-	@echo + Building Linux Kernel
-	@make -s -C $(DIR_KERNEL) -j4
-
-$(BUSYBOX_IMAGE):
+build-busybox:
 	@echo + Building BusyBox
-	@make -s -C $(DIR_BUSYBOX)
-	@make -s -C $(DIR_BUSYBOX) install
+	@make -C $(DIR_BUSYBOX)
+	@make -C $(DIR_BUSYBOX) install
+
+.PHONY: build build-kernel build-busybox
 
 ## Rules : Generate initramfs
 
@@ -126,11 +124,11 @@ gen-initramfs: gen-initramfs-busybox
 
 gen-initramfs-empty:
 	@echo + Generating initramfs empty
-	@make -s -C $(DIR_INITRAMFS_EMPTY) IMAGE=$(INITRAMFS_IMAGE)
+	@make -C $(DIR_INITRAMFS_EMPTY) IMAGE=$(INITRAMFS_IMAGE)
 
-gen-initramfs-busybox: build-kernel build-busybox
+gen-initramfs-busybox: $(KERNEL_IMAGE) $(BUSYBOX_IMAGE)
 	@echo + Generating initramfs busybox
-	@make -s -C $(DIR_INITRAMFS_BUSYBOX) \
+	@make -C $(DIR_INITRAMFS_BUSYBOX) \
         IMAGE=$(INITRAMFS_IMAGE) \
         SCRIPT=$(SCRIPT_GEN_INITRAMFS) \
 		BUSYBOX=$(BUSYBOX_OUT_DIR)
@@ -148,9 +146,9 @@ clean:
 .PHONY: clean
 
 clean-kernel:
-	make -s -C $(DIR_KERNEL) clean
+	make -C $(DIR_KERNEL) clean
 clean-busybox:
-	make -s -C $(DIR_BUSYBOX) clean
+	make -C $(DIR_BUSYBOX) clean
 
 .PHONY: clean-kernel clean-busybox
 

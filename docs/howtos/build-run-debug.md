@@ -66,7 +66,7 @@ With `tinyconfig` we can run `make` and get a minimal kernel image, but this is 
 make menuconfig
 ```
 
-*Notice : For below-mentioned options, there positions in `menuconfig` GUI (5.15.57) is given, which might be different in other versions of kernel.*
+*Notice : For below-mentioned options, their name and position in `menuconfig` GUI (5.15.57) is given, which might be different in other versions of kernel.*
 
 Required and highly-recommanded additional options are listed below :
 
@@ -150,11 +150,39 @@ After `make` , a series of images will be generated, and we are concerned about 
 
 ---
 
+### Build BusyBox
+
+Similar to linux kernel, we shall enable several additional options through `menuconfig` :
+
+```
+make menuconfig
+```
+
+*Notice : For below-mentioned options, their name and position in `menuconfig` GUI (1.35.0) is given, which might be different in other versions of busybox.*
+
+Required and highly-recommanded additional options are listed below :
+
+Settings --->
+
+--- Build Options
+
+- [*] Build static binary (no shared libs)
+
+--- Debugging Options
+
+- [*] Build with debug information
+
+    - [*] Disable compiler optimizations
+
+---
+
 ### Generate initramfs
 
 #### Generate a Minimal initramfs
 
 This section will tell you how to generate a minimal initramfs, which is almost empty, only containing a hello-world executable file.
+
+see `/usr/default_cpio_list` .
 
 #### Generate a initramfs with BusyBox
 
