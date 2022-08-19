@@ -6,7 +6,7 @@
 
 int main(void) {
 	printf("hello, world!\n");
-	int ret = syscall(SYS_hello);
+	int ret = syscall(SYS_hello, 12, 24);
 	printf("syscall #500 ret = %d\n", ret);
 	fflush(stdout);
 	return 0;

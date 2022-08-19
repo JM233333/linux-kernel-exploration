@@ -12,7 +12,8 @@
 			"syscalls_64.h": "c",
 			"syscall_wrapper.h": "c",
 			"unistd.h": "c",
-			"unistd_64.h": "c"
+			"unistd_64.h": "c",
+			"syscalls.h": "c"
 		}
 	}
 }
