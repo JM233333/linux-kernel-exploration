@@ -2,6 +2,8 @@
 
 .DEFAULT_GOAL = run
 
+export USER  := jm2333333
+
 ## Configurations
 
 ### path of tools
@@ -15,12 +17,12 @@ QEMU := qemu-system-x86_64
 KERNEL_VERSION  := 5.15.57
 BUSYBOX_VERSION := 1.35.0
 
-DIR_KERNEL      := $(realpath linux-$(KERNEL_VERSION))
-DIR_BUSYBOX     := $(realpath busybox-$(BUSYBOX_VERSION))
+export DIR_KERNEL      := $(realpath linux-$(KERNEL_VERSION))
+export DIR_BUSYBOX     := $(realpath busybox-$(BUSYBOX_VERSION))
 
-KERNEL_IMAGE    := $(DIR_KERNEL)/arch/x86/boot/bzImage
-BUSYBOX_OUT_DIR := $(DIR_BUSYBOX)/_install
-BUSYBOX_IMAGE   := $(BUSYBOX_OUT_DIR)/linuxrc
+export KERNEL_IMAGE    := $(DIR_KERNEL)/arch/x86/boot/bzImage
+export DIR_BUSYBOX_BIN := $(DIR_BUSYBOX)/_install
+export BUSYBOX_IMAGE   := $(DIR_BUSYBOX_BIN)/linuxrc
 
 ### path of directories, executables and images
 
@@ -34,21 +36,18 @@ DIR_SCRIPTS_GDB          := $(DIR_SCRIPTS)/gdb
 # DIR_SCRIPTS_INITRAMFS    := $(DIR_SCRIPTS)/initramfs
 
 DIR_INITRAMFS         := $(realpath ./initramfs)
-DIR_INITRAMFS_EMPTY   := $(DIR_INITRAMFS)/empty
-DIR_INITRAMFS_BUSYBOX := $(DIR_INITRAMFS)/busybox
+DIR_ROOTDISK          := $(realpath ./rootdisk)
 
 INITRAMFS_IMAGE       := $(DIR_INITRAMFS)/initramfs.img
+ROOTDISK_IMAGE        := $(DIR_ROOTDISK)/rootdisk.img
 
-### path of scripts
+### configurations
 
-SCRIPT_GEN_INITRAMFS := $(DIR_INITRAMFS_BUSYBOX)/usr/gen_initramfs.sh
-BIN_GEN_INIT_CPIO    := $(DIR_INITRAMFS_BUSYBOX)/usr/gen_init_cpio
+GDB_SCRIPT := $(DIR_SCRIPTS_GDB)/test.gdb
+GDB_PORT   := 1234
 
-### build parameters
-
-ifeq ($(INITRAMFS),)
-    INITRAMFS := busybox
-endif
+IMGTYPE_INITRAMFS := busybox
+IMGTYPE_ROOTDISK  := busybox
 
 ## Rules : Config
 
@@ -68,37 +67,56 @@ endif
 
 .PHONY: defaultconfig tinyconfig
 
-## Configurations of Run
+## Rules : Default
 
-### gdb
+run: run-initramfs
+gdb: gdb-initramfs
+.PHONY: run gdb
 
-GDB_PORT := 1234
+## Rules : Run & Debug
 
-GDB_SCRIPT := $(DIR_SCRIPTS_GDB)/test.gdb
+QEMUFLAGS_GENERAL   := -kernel $(KERNEL_IMAGE) -smp 1 -serial mon:stdio -nographic
+QEMUFLAGS_GDB       := -S -gdb tcp::$(GDB_PORT)
 
-### qemu
+### run/debug with initramfs
 
-QEMUFLAGS      := -serial mon:stdio -nographic
-QEMUAPPENDARGS := console=ttyS0
+QEMUFLAGS_INITRAMFS := -initrd $(INITRAMFS_IMAGE) \
+                       -append "console=ttyS0 root=/dev/ram init=/init"
 
-QEMUFLAGS_GDB  := -S -gdb tcp::$(GDB_PORT)
+run-initramfs: $(KERNEL_IMAGE) gen-initramfs
+	$(QEMU) $(QEMUFLAGS_GENERAL) $(QEMUFLAGS_INITRAMFS)
 
-## Rules : Run
+gdb-initramfs: $(KERNEL_IMAGE) gen-initramfs
+	$(QEMU) $(QEMUFLAGS_GENERAL) $(QEMUFLAGS_INITRAMFS) $(QEMUFLAGS_GDB)
 
-run: $(KERNEL_IMAGE) gen-initramfs
-	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) $(QEMUFLAGS) \
-        -append "$(QEMUAPPENDARGS) root=/dev/ram init=/init"
+.PHONY: run-initramfs gdb-initramfs
 
-## Rules : Debug
+### run/debug with rootdisk
 
-gdb: $(KERNEL_IMAGE) gen-initramfs
-	$(QEMU) -kernel $(KERNEL_IMAGE) -initrd $(INITRAMFS_IMAGE) $(QEMUFLAGS) \
-        -append "$(QEMUAPPENDARGS) root=/dev/ram init=/init" \
-        $(QEMUFLAGS_GDB)
+QEMUFLAGS_ROOTDISK  := -hda $(ROOTDISK_IMAGE) \
+                       -append "console=ttyS0 root=/dev/sda init=/linuxrc rw"
+
+#QEMUFLAGS_ROOTDISK  := -m 64M -drive file=$(ROOTDISK_IMAGE),index=0,media=disk \
+                       -hda ./disk.img \
+                       -append "console=ttyS0 root=/dev/hda init=/init"
+
+# QEMUFLAGS_ROOTDISK  := -m 64M -drive file=$(ROOTDISK_IMAGE),index=0,format=raw \
+                       -append "console=ttyS0 root=/dev/ram0 init=/init"
+
+run-rootdisk: $(KERNEL_IMAGE) gen-rootdisk
+	$(QEMU) $(QEMUFLAGS_GENERAL) $(QEMUFLAGS_ROOTDISK)
+
+gdb-rootdisk: $(KERNEL_IMAGE) gen-rootdisk
+	$(QEMU) $(QEMUFLAGS_GENERAL) $(QEMUFLAGS_ROOTDISK) $(QEMUFLAGS_GDB)
+
+.PHONY: run-rootdisk gdb-rootdisk
+
+## Rules : Remote Debug
 
 gdb-attach:
 	gdb $(DIR_KERNEL)/vmlinux -x $(GDB_SCRIPT) -ex "target remote localhost:$(GDB_PORT)"
-#	cd $(DIR_KERNEL); gdb ./vmlinux -ex "target remote localhost:$(GDB_PORT)"
+
+.PHONY: gdb-attach
 
 ## Rules : Build
 
@@ -107,9 +125,6 @@ build: build-kernel build-busybox
 build-kernel:
 	@echo + Building Linux Kernel
 	@make -C $(DIR_KERNEL) -j4
-	@mkdir -p $(dir $(SCRIPT_GEN_INITRAMFS))
-	@cp $(DIR_KERNEL)/usr/$(notdir $(SCRIPT_GEN_INITRAMFS)) $(SCRIPT_GEN_INITRAMFS)
-	@cp $(DIR_KERNEL)/usr/$(notdir $(BIN_GEN_INIT_CPIO))    $(BIN_GEN_INIT_CPIO)
 
 build-busybox:
 	@echo + Building BusyBox
@@ -120,20 +135,19 @@ build-busybox:
 
 ## Rules : Generate initramfs
 
-gen-initramfs: gen-initramfs-busybox
+gen-initramfs:
+	@echo + Generating initramfs $(IMGTYPE_INITRAMFS)
+	@make -s -C $(DIR_INITRAMFS) IMAGE=$(INITRAMFS_IMAGE) IMGTYPE=$(IMGTYPE_INITRAMFS)
 
-gen-initramfs-empty:
-	@echo + Generating initramfs empty
-	@make -C $(DIR_INITRAMFS_EMPTY) IMAGE=$(INITRAMFS_IMAGE)
+.PHONY: gen-initramfs
 
-gen-initramfs-busybox: $(KERNEL_IMAGE) $(BUSYBOX_IMAGE)
-	@echo + Generating initramfs busybox
-	@make -C $(DIR_INITRAMFS_BUSYBOX) \
-        IMAGE=$(INITRAMFS_IMAGE) \
-        SCRIPT=$(SCRIPT_GEN_INITRAMFS) \
-		BUSYBOX=$(BUSYBOX_OUT_DIR)
+## Rules : Generate Hard Disk
 
-.PHONY: gen-initramfs gen-initramfs-empty gen-initramfs-busybox
+gen-rootdisk:
+	@echo + Generating rootdisk $(IMGTYPE_ROOTDISK)
+	@make -s -C $(DIR_ROOTDISK) IMAGE=$(notdir $(ROOTDISK_IMAGE)) IMGTYPE=$(IMGTYPE_ROOTDISK)
+
+.PHONY: gen-rootdisk
 
 ## Rules : Clean
 
@@ -149,8 +163,12 @@ clean-kernel:
 	make -C $(DIR_KERNEL) clean
 clean-busybox:
 	make -C $(DIR_BUSYBOX) clean
+clean-initramfs:
+	make -s -C $(DIR_INITRAMFS) clean IMAGE=$(INITRAMFS_IMAGE)
+clean-rootdisk:
+	make -s -C $(DIR_ROOTDISK) clean IMAGE=$(ROOTDISK_IMAGE)
 
-.PHONY: clean-kernel clean-busybox
+.PHONY: clean-kernel clean-busybox clean-initramfs clean-rootdisk
 
-clean-all: clean clean-kernel clean-busybox
+clean-all: clean clean-kernel clean-busybox clean-initramfs clean-rootdisk
 .PHONY: clean-all

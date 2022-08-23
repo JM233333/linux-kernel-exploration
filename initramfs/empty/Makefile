@@ -1,16 +1,3 @@
-## Check Parameters
-
-ifeq ($(IMAGE),)
-    IMAGE := $(realpath ../initramfs.img)
-    # $(error Error - $$IMAGE required to generate initramfs image)
-endif
-
-## Compilers and Compile Flags
-
-CC := gcc
-
-CFLAGS := -O0 -g -ggdb -static
-
 ## Rules
 
 gen: compile
@@ -22,6 +9,6 @@ init: init.c
 	$(CC) $(CFLAGS) -o init init.c
 
 clean:
-	rm init
+	rm -f init
 
 .PHONY: gen compile clean

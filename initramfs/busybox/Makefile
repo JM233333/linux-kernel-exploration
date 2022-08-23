@@ -1,36 +1,38 @@
 ## Check Parameters
 
-ifeq ($(IMAGE),)
-    IMAGE := $(realpath ../initramfs.img)
+ifeq ($(DIR_KERNEL),)
+    $(error Error - $$DIR_KERNEL required to generate busybox-based initramfs image)
 endif
 
-ifeq ($(SCRIPT),)
-    $(error Error - $$SCRIPT required to generate initramfs image)
+ifeq ($(DIR_BUSYBOX_BIN),)
+    $(error Error - $$DIR_BUSYBOX_BIN required to generate busybox-based initramfs image)
 endif
 
-ifeq ($(BUSYBOX),)
-    $(error Error - $$BUSYBOX required to generate initramfs image)
-endif
+## Configurations
 
-CPIO_LIST = $(realpath ./cpio_list)
+SCRIPT_GEN_INITRAMFS := $(realpath .)/usr/gen_initramfs.sh
+BIN_GEN_INIT_CPIO    := $(realpath .)/usr/gen_init_cpio
 
-## Compilers and Compile Flags
-
-CC := gcc
-
-CFLAGS := -O0 -g -ggdb -static
+CPIO_LIST := $(realpath ./cpio_list)
 
 ## Rules
 
-gen: test
-	@echo $(notdir $(SCRIPT)) -o $(notdir $(IMAGE)) $(notdir $(BUSYBOX)) $(notdir $(CPIO_LIST))
-	@$(SCRIPT) -o $(IMAGE) $(BUSYBOX) $(CPIO_LIST)
+gen: getscript test
+	@echo $(notdir $(SCRIPT_GEN_INITRAMFS)) -o $(notdir $(IMAGE)) $(notdir $(DIR_BUSYBOX_BIN)) $(notdir $(CPIO_LIST))
+	@$(SCRIPT_GEN_INITRAMFS) -o $(IMAGE) $(BUSYBOX) $(CPIO_LIST)
 
 test: test.c
 	$(CC) $(CFLAGS) -o test test.c
 
+getscript:
+	@echo get linux/usr/$(notdir $(SCRIPT_GEN_INITRAMFS))
+	@echo get linux/usr/$(notdir $(BIN_GEN_INIT_CPIO))
+	@mkdir -p $(dir $(SCRIPT_GEN_INITRAMFS))
+	@cp $(DIR_KERNEL)/usr/$(notdir $(SCRIPT_GEN_INITRAMFS)) $(SCRIPT_GEN_INITRAMFS)
+	@cp $(DIR_KERNEL)/usr/$(notdir $(BIN_GEN_INIT_CPIO))    $(BIN_GEN_INIT_CPIO)
+
 clean:
-	rm -rf usr
+	rm -rf $(dir $(SCRIPT_GEN_INITRAMFS))
 	rm -f test
 
-.PHONY: gen clean
+.PHONY: gen getscript clean
