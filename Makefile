@@ -2,7 +2,8 @@
 
 .DEFAULT_GOAL = run
 
-export USER  := jm2333333
+# used by chown to remove root privilege caused by `sudo mount rootdisk.img`
+export USER := jm233333
 
 ## Configurations
 
@@ -21,6 +22,7 @@ export DIR_KERNEL      := $(realpath linux-$(KERNEL_VERSION))
 export DIR_BUSYBOX     := $(realpath busybox-$(BUSYBOX_VERSION))
 
 export KERNEL_IMAGE    := $(DIR_KERNEL)/arch/x86/boot/bzImage
+# export KERNEL_IMAGE    := $(realpath ../linux-$(KERNEL_VERSION))/arch/x86/boot/bzImage
 export DIR_BUSYBOX_BIN := $(DIR_BUSYBOX)/_install
 export BUSYBOX_IMAGE   := $(DIR_BUSYBOX_BIN)/linuxrc
 
@@ -51,21 +53,30 @@ IMGTYPE_ROOTDISK  := busybox
 
 ## Rules : Config
 
-defaultconfig: tinyconfig
-
-tinyconfig:
-ifeq ($(wildcard $(DIR_KERNEL)/.config),)
-	cp $(DIR_SCRIPTS_BUILD_CONFIG)/tiny/kernel.config $(DIR_KERNEL)/.config
-else
-	@echo tinyconfig failed : .config file already exists in kernel archive.
-endif
+busyboxconfig:
 ifeq ($(wildcard $(DIR_BUSYBOX)/.config),)
-	cp $(DIR_SCRIPTS_BUILD_CONFIG)/tiny/busybox.config $(DIR_BUSYBOX)/.config
+	cp $(DIR_SCRIPTS_BUILD_CONFIG)/busybox/.config $(DIR_BUSYBOX)/.config
 else
 	@echo tinyconfig failed : .config file already exists in busybox archive.
 endif
 
-.PHONY: defaultconfig tinyconfig
+defaultconfig: tinyconfig
+
+tinyconfig: busyboxconfig
+ifeq ($(wildcard $(DIR_KERNEL)/.config),)
+	cp $(DIR_SCRIPTS_BUILD_CONFIG)/kernel/tiny.config $(DIR_KERNEL)/.config
+else
+	@echo tinyconfig failed : .config file already exists in kernel archive.
+endif
+
+minhdconfig: busyboxconfig
+ifeq ($(wildcard $(DIR_KERNEL)/.config),)
+	cp $(DIR_SCRIPTS_BUILD_CONFIG)/kernel/min-hd-support.config $(DIR_KERNEL)/.config
+else
+	@echo tinyconfig failed : .config file already exists in kernel archive.
+endif
+
+.PHONY: busyboxconfig defaultconfig tinyconfig minhdconfig
 
 ## Rules : Default
 
@@ -103,7 +114,7 @@ QEMUFLAGS_ROOTDISK  := -hda $(ROOTDISK_IMAGE) \
 # QEMUFLAGS_ROOTDISK  := -m 64M -drive file=$(ROOTDISK_IMAGE),index=0,format=raw \
                        -append "console=ttyS0 root=/dev/ram0 init=/init"
 
-run-rootdisk: $(KERNEL_IMAGE) gen-rootdisk
+run-rootdisk: $(KERNEL_IMAGE)
 	$(QEMU) $(QEMUFLAGS_GENERAL) $(QEMUFLAGS_ROOTDISK)
 
 gdb-rootdisk: $(KERNEL_IMAGE) gen-rootdisk

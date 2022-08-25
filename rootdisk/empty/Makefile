@@ -1,7 +1,3 @@
-## Common
-
-include $(realpath ../rootdisk.mk)
-
 ## Check Parameters
 
 ifeq ($(DIR_KERNEL),)

@@ -23,8 +23,9 @@ export DIR_MOUNT := $(realpath .)/disk
 ## Rules
 
 gen:
-	make -s -C $(IMGTYPE) gen IMAGE=$(IMAGE)
+	make -s -C $(IMGTYPE) gen IMAGE=$(notdir $(IMAGE))
 	rm -f $(IMAGE)
+	echo + ln -s $(IMGTYPE)/$(IMAGE) $(IMAGE)
 	ln -s $(IMGTYPE)/$(IMAGE) $(IMAGE)
 
 .PHONY: gen
@@ -41,6 +42,6 @@ clean: $(CLEAN_IMGTYPES)
 
 $(CLEAN_IMGTYPES):
 	echo + make -s -C $(subst $(CLEAN_PREFIX)/,,$@) clean
-	make -s -C $(subst $(CLEAN_PREFIX)/,,$@) clean
+	make -s -C $(subst $(CLEAN_PREFIX)/,,$@) clean IMAGE=$(notdir $(IMAGE))
 
 .PHONY: clean $(CLEAN_IMGTYPES)
