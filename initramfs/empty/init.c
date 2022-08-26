@@ -2,7 +2,7 @@
 
 int main(void) {
 	printf("hello, world!\n");
-	fflush(stdout);
+	fflush(stdout); // make sure the output is visible on the screen
 	while (1);
 	return 0;
 }

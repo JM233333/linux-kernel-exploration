@@ -22,9 +22,12 @@ export DIR_KERNEL      := $(realpath linux-$(KERNEL_VERSION))
 export DIR_BUSYBOX     := $(realpath busybox-$(BUSYBOX_VERSION))
 
 export KERNEL_IMAGE    := $(DIR_KERNEL)/arch/x86/boot/bzImage
-# export KERNEL_IMAGE    := $(realpath ../linux-$(KERNEL_VERSION))/arch/x86/boot/bzImage
 export DIR_BUSYBOX_BIN := $(DIR_BUSYBOX)/_install
 export BUSYBOX_IMAGE   := $(DIR_BUSYBOX_BIN)/linuxrc
+
+ifneq ($(DEFCMP),)
+export KERNEL_IMAGE    := $(realpath ../linux-$(KERNEL_VERSION))/arch/x86/boot/bzImage
+endif
 
 ### path of directories, executables and images
 
@@ -49,34 +52,35 @@ GDB_SCRIPT := $(DIR_SCRIPTS_GDB)/test.gdb
 GDB_PORT   := 1234
 
 IMGTYPE_INITRAMFS := busybox
-IMGTYPE_ROOTDISK  := busybox
+IMGTYPE_ROOTDISK  := empty
 
-## Rules : Config
+INITBIN := /init
+# INITBIN := /linuxrc
 
-busyboxconfig:
-ifeq ($(wildcard $(DIR_BUSYBOX)/.config),)
-	cp $(DIR_SCRIPTS_BUILD_CONFIG)/busybox/.config $(DIR_BUSYBOX)/.config
-else
-	@echo tinyconfig failed : .config file already exists in busybox archive.
-endif
+## Rules : Use Preset Kernel Configuration
 
-defaultconfig: tinyconfig
+config-default: config-tiny
 
-tinyconfig: busyboxconfig
+config-tiny:
 ifeq ($(wildcard $(DIR_KERNEL)/.config),)
 	cp $(DIR_SCRIPTS_BUILD_CONFIG)/kernel/tiny.config $(DIR_KERNEL)/.config
 else
 	@echo tinyconfig failed : .config file already exists in kernel archive.
 endif
 
-minhdconfig: busyboxconfig
+config-min-hd:
 ifeq ($(wildcard $(DIR_KERNEL)/.config),)
 	cp $(DIR_SCRIPTS_BUILD_CONFIG)/kernel/min-hd-support.config $(DIR_KERNEL)/.config
 else
 	@echo tinyconfig failed : .config file already exists in kernel archive.
 endif
 
-.PHONY: busyboxconfig defaultconfig tinyconfig minhdconfig
+.PHONY: config-default config-tiny config-min-hd
+
+removeconfig:
+	rm -f $(DIR_KERNEL)/.config
+
+.PHONY: removeconfig
 
 ## Rules : Default
 
@@ -92,7 +96,7 @@ QEMUFLAGS_GDB       := -S -gdb tcp::$(GDB_PORT)
 ### run/debug with initramfs
 
 QEMUFLAGS_INITRAMFS := -initrd $(INITRAMFS_IMAGE) \
-                       -append "console=ttyS0 root=/dev/ram init=/init"
+                       -append "console=ttyS0 root=/dev/ram init=$(INITBIN)"
 
 run-initramfs: $(KERNEL_IMAGE) gen-initramfs
 	$(QEMU) $(QEMUFLAGS_GENERAL) $(QEMUFLAGS_INITRAMFS)
@@ -104,17 +108,12 @@ gdb-initramfs: $(KERNEL_IMAGE) gen-initramfs
 
 ### run/debug with rootdisk
 
-QEMUFLAGS_ROOTDISK  := -hda $(ROOTDISK_IMAGE) \
-                       -append "console=ttyS0 root=/dev/sda init=/linuxrc rw"
+# QEMUFLAGS_ROOTDISK  := -drive file=$(ROOTDISK_IMAGE),index=0,media=disk \
 
-#QEMUFLAGS_ROOTDISK  := -m 64M -drive file=$(ROOTDISK_IMAGE),index=0,media=disk \
-                       -hda ./disk.img \
-                       -append "console=ttyS0 root=/dev/hda init=/init"
+QEMUFLAGS_ROOTDISK  := -hda $(ROOTDISK_IMAGE) -hdb ./disk.img \
+                       -append "console=ttyS0 root=/dev/sda init=$(INITBIN) rw"
 
-# QEMUFLAGS_ROOTDISK  := -m 64M -drive file=$(ROOTDISK_IMAGE),index=0,format=raw \
-                       -append "console=ttyS0 root=/dev/ram0 init=/init"
-
-run-rootdisk: $(KERNEL_IMAGE)
+run-rootdisk: $(KERNEL_IMAGE) gen-rootdisk
 	$(QEMU) $(QEMUFLAGS_GENERAL) $(QEMUFLAGS_ROOTDISK)
 
 gdb-rootdisk: $(KERNEL_IMAGE) gen-rootdisk
@@ -133,14 +132,17 @@ gdb-attach:
 
 build: build-kernel build-busybox
 
-build-kernel:
+build-kernel: $(DIR_KERNEL)/.config
 	@echo + Building Linux Kernel
 	@make -C $(DIR_KERNEL) -j4
 
-build-busybox:
+build-busybox: $(DIR_BUSYBOX)/.config
 	@echo + Building BusyBox
 	@make -C $(DIR_BUSYBOX)
 	@make -C $(DIR_BUSYBOX) install
+
+$(DIR_BUSYBOX)/.config:
+	cp $(DIR_SCRIPTS_BUILD_CONFIG)/busybox/.config $(DIR_BUSYBOX)/.config
 
 .PHONY: build build-kernel build-busybox
 
@@ -148,7 +150,7 @@ build-busybox:
 
 gen-initramfs:
 	@echo + Generating initramfs $(IMGTYPE_INITRAMFS)
-	@make -s -C $(DIR_INITRAMFS) IMAGE=$(INITRAMFS_IMAGE) IMGTYPE=$(IMGTYPE_INITRAMFS)
+	@make -s -C $(DIR_INITRAMFS) IMAGE=$(notdir $(INITRAMFS_IMAGE)) IMGTYPE=$(IMGTYPE_INITRAMFS)
 
 .PHONY: gen-initramfs
 

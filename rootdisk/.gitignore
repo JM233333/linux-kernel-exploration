@@ -4,5 +4,6 @@
 !*.sh
 !.gitignore
 !Makefile
+!*.mk
 
 disk/

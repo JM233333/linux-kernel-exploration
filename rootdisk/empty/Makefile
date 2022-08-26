@@ -1,31 +1,50 @@
 ## Check Parameters
 
-ifeq ($(DIR_KERNEL),)
-    $(error Error - $$DIR_KERNEL required to generate rootdisk image)
+ifeq ($(IMAGE),)
+    $(error Error - $$IMAGE required to generate rootdisk image)
 endif
+
+ifeq ($(DIR_MOUNT),)
+    $(error Error - $$DIR_MOUNT required to generate rootdisk image)
+endif
+
+## Check Optional Parameters
+
+ifeq ($(DISK_SIZE_MB),)
+    DISK_SIZE_MB := 16
+endif
+
+## Compilers and Compile Flags
+
+CC := gcc
+
+CFLAGS := -O0 -g -ggdb -static
 
 ## Rules
 
-# disk size (in MB)
-DISK_SIZE := 16
+include $(realpath ../rootdisk.mk)
 
-gen: clean compile
-#	dd if=/dev/zero of=$(IMAGE) bs=1024 count=$(shell expr $(DISK_SIZE) \* 1024)
-	qemu-img create -f raw $(IMAGE) 16M
-	mkfs.ext4 $(IMAGE)
-	mkdir -p $(MOUNT_DIR)
-	sudo mount -o loop $(IMAGE) $(MOUNT_DIR)
-#	sudo make -C $(DIR_KERNEL) modules_install INSTALL_MOD_PATH=$(MOUNT_DIR)
-	sudo cp init $(MOUNT_DIR)
+gen: $(IMAGE)
 
-compile: init
+$(IMAGE): init
+	make img-init
+	sudo mount -t ext4 -o loop $(IMAGE).tmp $(DIR_MOUNT)
+	sudo chown $(USER) $(DIR_MOUNT)
+	cp init $(DIR_MOUNT)
+	sudo umount $(DIR_MOUNT)
+	mv $(IMAGE).tmp $(IMAGE)
+
+.PHONY: gen
+
+## Rules : Compile
 
 init: init.c
+	echo + $(CC) $(CFLAGS) -o init init.c
 	$(CC) $(CFLAGS) -o init init.c
 
-clean:
-	-sudo umount $(MOUNT_DIR)
-	rm -f $(IMAGE)
+## Rules : Clean
+
+clean: img-clean
 	rm -f init
 
-.PHONY: gen compile clean
+.PHONY: clean

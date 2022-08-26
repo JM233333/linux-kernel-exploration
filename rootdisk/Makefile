@@ -10,12 +10,6 @@ ifeq ($(IMGTYPE),)
 endif
 endif
 
-## Compilers and Compile Flags
-
-CC := gcc
-
-CFLAGS := -O0 -g -ggdb -static
-
 ## Configurations
 
 export DIR_MOUNT := $(realpath .)/disk
