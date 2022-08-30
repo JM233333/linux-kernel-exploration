@@ -52,7 +52,7 @@ GDB_SCRIPT := $(DIR_SCRIPTS_GDB)/test.gdb
 GDB_PORT   := 1234
 
 IMGTYPE_INITRAMFS := busybox
-IMGTYPE_ROOTDISK  := empty
+IMGTYPE_ROOTDISK  := busybox
 
 INITBIN := /init
 # INITBIN := /linuxrc
