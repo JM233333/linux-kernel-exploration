@@ -110,7 +110,10 @@ gdb-initramfs: $(KERNEL_IMAGE) gen-initramfs
 
 # QEMUFLAGS_ROOTDISK  := -drive file=$(ROOTDISK_IMAGE),index=0,media=disk \
 
-QEMUFLAGS_ROOTDISK  := -hda $(ROOTDISK_IMAGE) -hdb ./disk.img \
+# QEMUFLAGS_ROOTDISK  := -hda $(ROOTDISK_IMAGE) -hdb ./disk.img \
+                       -append "console=ttyS0 root=/dev/sda init=$(INITBIN) rw"
+
+QEMUFLAGS_ROOTDISK  := -hda $(ROOTDISK_IMAGE) \
                        -append "console=ttyS0 root=/dev/sda init=$(INITBIN) rw"
 
 run-rootdisk: $(KERNEL_IMAGE) gen-rootdisk
